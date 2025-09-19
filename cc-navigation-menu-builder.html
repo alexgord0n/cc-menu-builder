@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Navigation Menu Builder — HTML Deep Import (Fixed)</title>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<style>
+  :root { --line:#22304c; }
+  *{box-sizing:border-box}
+  body{margin:0;color:#e5e7eb;background:linear-gradient(180deg,#0b1220 0%,#0a0f1a 100%);font:14px/1.4 system-ui,-apple-system,Segoe UI,Inter,Roboto,sans-serif}
+  header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+  header h1{margin:0;font-size:16px;font-weight:600}
+  header .actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+  button,select,input[type="text"],input[type="url"],input[type="color"],input[type="number"],textarea{background:#0f172a;color:#e5e7eb;border:1px solid #23324e;border-radius:8px;padding:8px 10px;font:inherit}
+  button{cursor:pointer;transition:.15s transform}
+  button:hover{transform:translateY(-1px);border-color:#355188}
+  button.ghost{background:transparent}
+  
+  .panel{border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#0c1426,#0b1322);overflow:hidden;display:flex;flex-direction:column;min-height:70vh}
+  .panel h2{margin:0;padding:12px 14px;border-bottom:1px solid var(--line);font-size:13px;color:#cbd5e1;background:#0d1629}
+  .panel .content{padding:12px;overflow:auto}
+  .toolbar{padding:10px 12px;border-top:1px solid var(--line);display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+  .pill{padding:4px 8px;border-radius:9px;border:1px solid #203050;background:#0c1427;font-size:12px;color:#cbd5e1}
+  .empty{color:#94a3b8;border:1px dashed #334e7b;border-radius:10px;padding:12px;text-align:center}
+  .tree{list-style:none;padding-left:0;margin:0}
+  .tree ul{list-style:none;padding-left:22px;margin:6px 0 0;border-left:1px dashed #243453}
+  .tree.children{min-height:10px}
+  .tree.children:empty::before{content:"Drop to nest";font-size:11px;color:#7c8aa5;padding-left:4px}
+  .node{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;padding:10px;background:#0f192f;border:1px solid #1b2a4a;border-radius:10px;overflow:visible}
+  .nodeHead{display:flex;align-items:center;gap:8px}
+  .dragHandle{cursor:grab;user-select:none;padding:4px 6px;border:1px dashed #31466f;border-radius:6px;color:#93c5fd}
+  .nodeHead .label{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1}
+  @media (max-width:980px){.nodeHead .label{grid-template-columns:1fr}}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .row>*{flex:1 1 auto}
+  .row .tight{flex:0 0 auto}
+
+  .previewWrap{padding:16px;overflow:visible}
+  .preview-bar{position:relative;display:flex;gap:18px;align-items:center;padding:14px 16px;border:1px solid #243453;border-radius:12px;background:#0e162b;overflow:visible}
+  .preview-item{position:relative}
+  .preview-link{display:inline-flex;gap:6px;align-items:center;text-decoration:none;padding:6px 10px;border-radius:8px;transition:all .2s}
+  .caret{font-size:10px;opacity:.8}
+  .anim-underline .preview-link{position:relative}
+  .anim-underline .preview-link::after{content:"";position:absolute;left:10px;right:10px;bottom:3px;height:2px;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform .22s ease}
+  .anim-underline .preview-link:hover::after{transform:scaleX(1)}
+  .anim-rise .preview-link:hover{transform:translateY(-2px)}
+  .anim-pulse .preview-link:hover{filter:brightness(1.2)}
+
+  /* Dropdowns – multi-level, no hover gaps, infinite levels */
+  .preview-item { position: relative; }
+  .preview-item > ul {
+    display: none; position: absolute; left: 0; top: 100%; margin-top: 4px; padding: 10px;
+    list-style: none; border: 1px solid #243453; border-radius: 10px; background: #0d1529;
+    min-width: 260px; z-index: 9999; overflow: visible;
+  }
+  .preview-item:hover > ul, .preview-item > ul:hover { display: block; }
+  .preview-item > ul li { position: relative; margin: 4px 0; }
+  .preview-item > ul li > ul {
+    display: none; position: absolute; left: 100%; top: 0; margin-left: 8px; padding: 10px;
+    list-style: none; border: 1px solid #243453; border-radius: 10px; background: #0d1529;
+    min-width: 260px; z-index: 9999;
+  }
+  .preview-item > ul li:hover > ul, .preview-item > ul li > ul:hover { display: block; }
+  .preview-item.open > ul { display: block; }
+  .preview-item > ul li.open > ul { display: block; }
+
+  /* Ensure dropdowns aren’t clipped */
+  .layout > .panel:nth-of-type(2),
+  .layout > .panel:nth-of-type(2) .content { overflow: visible; }
+  .previewWrap { position: relative; z-index: 1; }
+  .preview-bar  { position: relative; z-index: 2; }
+
+  .small{font-size:12px;color:#9aa7bd}
+  /* ── Collapsible nodes ("twirl") ─────────────────────────────── */
+  .nodeHead .twirl{
+    cursor:pointer;
+    user-select:none;
+    padding:4px 6px;
+    border:1px solid #31466f;
+    background:#0b1322;
+    border-radius:6px;
+    color:#cbd5e1;
+  }
+  .twirl .car{ display:inline-block; transition:transform .15s ease; }
+
+  /* When LI is collapsed, hide its details and its children list */
+  li.collapsed > .node .row { display:none; }
+  li.collapsed > ul.children { display:none; }
+
+  /* Rotate caret when collapsed */
+  li.collapsed .twirl .car{ transform:rotate(-90deg); }
+
+  /* Split layout: left width is customizable via --left */
+  .layout{
+    display:grid;
+    grid-template-columns: var(--left, 560px) 10px 1fr; /* left | divider | right */
+    gap: 16px;
+    padding: 16px;
+  }
+
+  /* Divider (drag handle) */
+  .divider{
+    align-self: stretch;
+    cursor: col-resize;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #0e162b, #0c1426);
+    border: 1px solid #23324e;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+    position: relative;
+  }
+  .divider::after{
+    content:"";
+    position:absolute; inset: 10% 3px;
+    border-left: 2px dotted #355188;
+    opacity:.8;
+  }
+  .divider:hover{ border-color:#355188; }
+
+  /* Mobile fallback: stack, divider hidden */
+  @media (max-width: 980px){
+    .layout{ grid-template-columns: 1fr; }
+    .divider{ display:none; }
+  }
+
+</style>
+</head>
+<body>
+<header>
+  <h1>🧭 Navigation Menu Builder — HTML Deep Import</h1>
+  <div class="actions">
+    <button id="undo" title="Undo (Ctrl/Cmd+Z)">Undo</button>
+    <button id="redo" title="Redo (Ctrl/Cmd+Shift+Z)">Redo</button>
+    <span class="pill" id="status">Ready</span>
+    <button id="addRoot">+ Add root item</button>
+    <button id="exportJson">Export JSON</button>
+    <button id="exportHtml">Export HTML/CSS</button>
+    <button id="exportCC">Export Gainsight CC</button>
+    <button id="reset" class="ghost">Reset</button>
+  </div>
+</header>
+
+<div class="layout">
+  <section class="panel" id="editor">
+    <h2>Structure & Properties</h2>
+    <div class="content">
+      <ul id="treeRoot" class="tree"></ul>
+      <div id="emptyState" class="empty">No items yet. Click “Add root item”.</div>
+    </div>
+
+    <div class="toolbar">
+      <div class="pill">Drag by the handle (≡) • Drop to reorder or nest</div>
+      <div class="pill">Fields: Label, Href, Target, Colors, Anim, Roles, Root: Position</div>
+
+      <!-- HTML import -->
+      <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap; margin-top:6px; width:100%">
+        <span class="pill">Import from HTML</span>
+        <input id="htmlFile" type="file" accept=".html,text/html" />
+        <button id="htmlImportFile">Import HTML File</button>
+        <label class="pill"><input id="htmlPromote" type="checkbox" checked style="margin-right:6px">Promote to root (no wrapper)</label>
+        <label class="pill"><input id="htmlReplace" type="checkbox" style="margin-right:6px">Replace current</label>
+        <button id="togglePaste">Paste HTML</button>
+        <div id="pasteBox" style="display:none; width:100%">
+          <textarea id="htmlPaste" rows="8" placeholder="Paste your nav HTML or page HTML here" style="width:100%; margin-top:8px"></textarea>
+          <div style="display:flex; gap:8px; margin-top:6px">
+            <button id="htmlImportPaste">Import Pasted HTML</button>
+            <label class="pill"><input id="autoNestByPath" type="checkbox" style="margin-right:6px">If flat, auto-nest by URL path</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider" id="divider" title="Drag to resize"></div>
+
+  <section class="panel">
+    <h2>Live Preview</h2>
+    <div class="content previewWrap">
+      <div id="preview" class="preview-bar anim-underline"></div>
+      <div class="small" style="margin-top:8px">Hover items with a ▾ caret to see nested children.</div>
+      <div class="row" style="margin-top:12px;">
+        <label class="pill tight">Global animation
+          <select id="globalAnim" style="margin-left:8px;">
+            <option value="anim-underline">Underline</option>
+            <option value="anim-rise">Rise</option>
+            <option value="anim-pulse">Pulse</option>
+            <option value="">None</option>
+          </select>
+        </label>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* =============== State & utils =============== */
+let menu = [];
+const els = {
+  treeRoot: document.getElementById('treeRoot'),
+  preview: document.getElementById('preview'),
+  addRoot: document.getElementById('addRoot'),
+  exportJson: document.getElementById('exportJson'),
+  exportHtml: document.getElementById('exportHtml'),
+  exportCC: document.getElementById('exportCC'),
+  reset: document.getElementById('reset'),
+  empty: document.getElementById('emptyState'),
+  globalAnim: document.getElementById('globalAnim'),
+  undo: document.getElementById('undo'),
+  redo: document.getElementById('redo'),
+  status: document.getElementById('status'),
+  htmlFile: document.getElementById('htmlFile'),
+  htmlImportFile: document.getElementById('htmlImportFile'),
+  htmlPromote: document.getElementById('htmlPromote'),
+  htmlReplace: document.getElementById('htmlReplace'),
+  togglePaste: document.getElementById('togglePaste'),
+  pasteBox: document.getElementById('pasteBox'),
+  htmlPaste: document.getElementById('htmlPaste'),
+  htmlImportPaste: document.getElementById('htmlImportPaste'),
+  autoNestByPath: document.getElementById('autoNestByPath'),
+};
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+function save(){ localStorage.setItem('nav_builder_menu', JSON.stringify(menu)); }
+function load(){ try{ return JSON.parse(localStorage.getItem('nav_builder_menu')); }catch(e){ return null; } }
+function setStatus(t){ els.status.textContent=t; clearTimeout(setStatus._t); setStatus._t=setTimeout(()=>els.status.textContent='Ready',900); }
+
+/* A safe node factory used by the importer */
+function mkNode(label, href){
+  return {
+    id: uid(),
+    label: label || 'Untitled',
+    href: href || '#',
+    target: '_self',
+    color: '#e5e7eb',
+    // bg is stored as "" for transparent; when rendering the color input we show #000000
+    bg: "",
+    anim: 'inherit',
+    roles: [],
+    children: []
+  };
+}
+
+/* ========= Resizable split (left panel width) ========= */
+const splitKey = 'nav_builder_left_px';
+const divider = document.getElementById('divider');
+
+function setLeft(px){
+  // clamp between 360px and (viewport - 420px) so preview never disappears
+  const min = 360;
+  const max = Math.max(min, window.innerWidth - 420);
+  const clamped = Math.min(Math.max(px, min), max);
+  document.documentElement.style.setProperty('--left', clamped + 'px');
+  return clamped;
+}
+function loadLeft(){
+  const saved = parseInt(localStorage.getItem(splitKey), 10);
+  if (!isNaN(saved)) setLeft(saved);
+  else setLeft(560); // default
+}
+function startDrag(clientX){
+  const startX = clientX;
+  const startLeft = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--left')) || 560;
+
+  function onMove(e){
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const next = startLeft + (x - startX);
+    setLeft(next);
+  }
+  function onUp(){
+    const cur = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--left')) || 560;
+    localStorage.setItem(splitKey, String(cur));
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    window.removeEventListener('touchmove', onMove);
+    window.removeEventListener('touchend', onUp);
+  }
+
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+  window.addEventListener('touchmove', onMove, {passive:false});
+  window.addEventListener('touchend', onUp);
+}
+
+if (divider){
+  divider.addEventListener('mousedown', (e)=>{ e.preventDefault(); startDrag(e.clientX); });
+  divider.addEventListener('touchstart', (e)=>{ e.preventDefault(); startDrag(e.touches[0].clientX); }, {passive:false});
+  divider.addEventListener('dblclick', ()=>{ const px=setLeft(560); localStorage.setItem(splitKey, String(px)); });
+  window.addEventListener('resize', ()=>{ // keep current width within new viewport bounds
+    const cur = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--left')) || 560;
+    const clamped = setLeft(cur);
+    localStorage.setItem(splitKey, String(clamped));
+  });
+}
+
+/* ========== Undo / Redo ========= */
+const history = { past: [], future: [], isApplying:false };
+function historyPush(snap){ if(history.isApplying) return; const last=history.past.at(-1); if(JSON.stringify(last)===JSON.stringify(snap)) return; history.past.push(deepClone(snap)); history.future=[]; updateUndoRedoButtons(); }
+function doUndo(){ if(history.past.length<2) return; history.isApplying=true; const cur=history.past.pop(); history.future.push(cur); const prev=history.past.at(-1); menu=deepClone(prev); save(); renderAll(); history.isApplying=false; updateUndoRedoButtons(); }
+function doRedo(){ if(!history.future.length) return; history.isApplying=true; const next=history.future.pop(); history.past.push(next); menu=deepClone(next); save(); renderAll(); history.isApplying=false; updateUndoRedoButtons(); }
+function initHistory(){ history.past=[deepClone(menu)]; history.future=[]; updateUndoRedoButtons(); }
+function updateUndoRedoButtons(){ els.undo.disabled=history.past.length<2; els.redo.disabled=history.future.length===0; }
+function markDirty(){ save(); renderPreview(); historyPush(menu); setStatus('Saved'); }
+window.addEventListener('keydown', (e)=>{ const z=/^z$/i.test(e.key), y=/^y$/i.test(e.key); if((e.ctrlKey||e.metaKey)&&z&&!e.shiftKey){e.preventDefault();doUndo();} else if((e.ctrlKey||e.metaKey)&&((e.shiftKey&&z)||y)){e.preventDefault();doRedo();}});
+els.undo.addEventListener('click', doUndo);
+els.redo.addEventListener('click', doRedo);
+
+/* =============== CRUD =============== */
+function addItem(parentId=null){
+  const node = mkNode('New Item', '#');
+  if(parentId){ const p=findNode(menu,parentId); p&&p.children.push(node); }
+  else { node.position = nextPositionGuess(); menu.push(node); }
+  save(); renderAll(); historyPush(menu);
+}
+function removeItem(id){
+  function recur(arr){ const i=arr.findIndex(x=>x.id===id); if(i>-1){arr.splice(i,1); return true;} return arr.some(x=>recur(x.children)); }
+  recur(menu); save(); renderAll(); historyPush(menu);
+}
+function findNode(arr,id){ for(const n of arr){ if(n.id===id) return n; const f=findNode(n.children,id); if(f) return f; } return null; }
+function nextPositionGuess(){ return (Math.max( ...(menu.map(m=>m.position||0)), 9) + 1); }
+function csvToArray(v){ return (v||"").split(',').map(x=>x.trim()).filter(Boolean); }
+function escapeHtml(s){ return (s??"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+
+/* ========== Editor rendering ========== */
+function renderAll(){ els.empty.style.display = menu.length ? 'none':'block'; renderTree(); renderPreview(); }
+function nodeTemplate(item, isRoot){
+  const rolesCsv = (item.roles||[]).join(', ');
+  const posField = isRoot ? `
+    <label class="pill tight">Position
+      <input type="number" name="position" value="${item.position ?? ''}" style="margin-left:8px;width:100px">
+    </label>` : '';
+
+  const bgValueForInput = (item.bg && item.bg.startsWith('#')) ? item.bg : '#000000';
+
+  return `
+    <div class="node" data-node="${item.id}">
+      <div class="nodeHead">
+        <button class="twirl" title="Collapse/expand"><span class="car">${item._collapsed ? '▸' : '▾'}</span></button>
+        <span class="dragHandle" title="Drag to move">≡</span>
+        <div class="label">
+          <input type="text" name="label" placeholder="Label" value="${escapeHtml(item.label||'')}" />
+          <input type="url" name="href" placeholder="https://..." value="${escapeHtml(item.href||'')}" />
+        </div>
+        <button class="addChild" title="Add child">＋</button>
+        <button class="delete danger" title="Delete">✕</button>
+      </div>
+      <div class="row">
+        <!-- (rest of your fields unchanged) -->
+        <select name="target" title="Open behavior" class="tight">
+          <option value="_self"  ${item.target==="_self"?'selected':''}>Same tab</option>
+          <option value="_blank" ${item.target==="_blank"?'selected':''}>New tab</option>
+        </select>
+        <label class="pill tight">Text
+          <input type="color" name="color" value="${item.color||'#e5e7eb'}" style="margin-left:8px">
+        </label>
+        <label class="pill tight">Background
+          <input type="color" name="bg" value="${bgValueForInput}" style="margin-left:8px">
+          <span class="small" style="margin-left:6px;opacity:.8">Leave as black if you want transparent; preview treats empty as transparent</span>
+        </label>
+        <label class="pill tight">Anim
+          <select name="anim" style="margin-left:8px">
+            <option value="inherit"   ${item.anim==='inherit'?'selected':''}>Inherit</option>
+            <option value="underline" ${item.anim==='underline'?'selected':''}>Underline</option>
+            <option value="rise"      ${item.anim==='rise'?'selected':''}>Rise</option>
+            <option value="pulse"     ${item.anim==='pulse'?'selected':''}>Pulse</option>
+            <option value="none"      ${item.anim==='none'?'selected':''}>None</option>
+          </select>
+        </label>
+        <label class="pill" style="flex:1">Roles
+          <input type="text" name="roles" placeholder="e.g. admin, moderator" value="${escapeHtml(rolesCsv)}" style="margin-left:8px;width:100%">
+        </label>
+        ${posField}
+      </div>
+    </div>`;
+}
+function wireNode(li, item, isRoot){
+  const $=sel=>li.querySelector(sel);
+  const on=(sel,ev,fn)=>{ const el=$(sel); if(el) el.addEventListener(ev,fn); };
+  on('input[name="label"]','input',e=>{ item.label=e.target.value; markDirty(); });
+  on('input[name="href"]','input',e=>{ item.href=e.target.value; markDirty(); });
+  on('select[name="target"]','change',e=>{ item.target=e.target.value; markDirty(); });
+  on('input[name="color"]','input',e=>{ item.color=e.target.value; markDirty(); });
+  on('input[name="bg"]','input',e=>{ 
+    // Store empty string if the user keeps default "transparent" intention
+    const val = e.target.value || '';
+    item.bg = (val && /^#([0-9a-f]{6})$/i.test(val)) ? val : '';
+    markDirty(); 
+  });
+  on('select[name="anim"]','change',e=>{ item.anim=e.target.value; markDirty(); });
+  on('input[name="roles"]','input',e=>{ item.roles = csvToArray(e.target.value); markDirty(); });
+  if(isRoot){ on('input[name="position"]','input',e=>{ item.position = Number(e.target.value)||0; markDirty(); }); }
+  on('.addChild','click',()=>addItem(item.id));
+  on('.delete','click',()=>removeItem(item.id));
+  // Collapse/expand this node. Hold Alt/Option to apply to the whole subtree.
+  on('.twirl','click',(e)=>{
+    const collapse = !(item._collapsed === true);
+    item._collapsed = collapse;
+    li.classList.toggle('collapsed', collapse);
+
+    // Optional: Alt/Option-click collapses/expands all descendants too
+    if (e.altKey) {
+      const toggleBranch = (nodes, state) => {
+        nodes.forEach(n => {
+          n._collapsed = state;
+          const subLi = els.treeRoot.querySelector(`li[data-id="${n.id}"]`);
+          if (subLi) subLi.classList.toggle('collapsed', state);
+          if (n.children?.length) toggleBranch(n.children, state);
+        });
+      };
+      if (item.children?.length) toggleBranch(item.children, collapse);
+    }
+
+    // Update caret symbol without re-rendering entire tree
+    const car = li.querySelector('.twirl .car');
+    if (car) car.textContent = collapse ? '▸' : '▾';
+
+    markDirty(); // saves + keeps preview in sync
+  });
+}
+function renderTree(){
+  els.treeRoot.innerHTML = "";
+  function createNode(item, isRoot){
+    const li = document.createElement('li');
+    li.dataset.id = item.id;
+
+    li.innerHTML = nodeTemplate(item, isRoot);
+
+    // Apply collapsed state
+    if (item._collapsed) li.classList.add('collapsed');
+
+    wireNode(li, item, isRoot);
+
+    const childUl = document.createElement('ul');
+    childUl.className = "tree children";
+    childUl.dataset.list = "true";
+    li.appendChild(childUl);
+
+    (item.children||[]).forEach(ch => childUl.appendChild(createNode(ch,false)));
+
+    new Sortable(childUl,{ group:{name:'menu',pull:true,put:true}, handle:'.dragHandle', animation:150, fallbackOnBody:true, swapThreshold:.65, ghostClass:'dragGhost', onEnd:onDragEnd });
+
+    return li;
+  }
+  const top=document.createElement('ul'); top.className="tree"; top.dataset.list="true";
+  menu.forEach(root => top.appendChild(createNode(root,true)));
+  els.treeRoot.appendChild(top);
+  new Sortable(top,{ group:{name:'menu',pull:true,put:true}, handle:'.dragHandle', animation:150, fallbackOnBody:true, swapThreshold:.65, ghostClass:'dragGhost', onEnd:onDragEnd });
+}
+function onDragEnd(){
+  const newMenu = domToTree(els.treeRoot);
+  if(JSON.stringify(newMenu)!==JSON.stringify(menu)){
+    menu=newMenu; save(); renderAll(); historyPush(menu);
+  }
+}
+function domToTree(root){
+  const topUl = root.querySelector(':scope > ul') || root;
+  function walk(ul){
+    const arr=[];
+    ul.querySelectorAll(':scope > li').forEach(li=>{
+      const id=li.querySelector('.node').dataset.node;
+      const original=findNode(menu,id)||{};
+      const node={...original, children:[]};
+      const childUl=li.querySelector(':scope > ul.children');
+      if(childUl){ node.children = walk(childUl); }
+      arr.push(node);
+    });
+    return arr;
+  }
+  return walk(topUl);
+}
+
+/* =============== Preview =============== */
+function renderPreview(){
+  const cls = ['preview-bar'];
+  const global = els.globalAnim.value || '';
+  if (global) cls.push(global);
+  els.preview.className = cls.join(' ');
+  els.preview.innerHTML = "";
+  if (!menu.length) { els.preview.innerHTML = '<div class="small">No items yet.</div>'; return; }
+
+  const animToClass = (choice, global) => {
+    const map = { underline:'anim-underline', rise:'anim-rise', pulse:'anim-pulse', none:'' };
+    return choice === 'inherit' ? (global || '') : (map[choice] || '');
+  };
+  const makeLink = (item) => {
+    const a = document.createElement('a');
+    a.className = 'preview-link';
+    a.textContent = item.label || 'Untitled';
+    a.href = item.href || '#';
+    a.target = item.target || '_self';
+    a.style.color = item.color || '';
+    // Treat empty bg as transparent in the preview
+    a.style.background = (item.bg && item.bg.startsWith('#')) ? item.bg : 'transparent';
+    if (item.children && item.children.length) { const caret = document.createElement('span'); caret.className = 'caret'; caret.textContent = '▾'; a.appendChild(caret); }
+    return a;
+  };
+  const buildUL = (items) => {
+    const ul = document.createElement('ul');
+    items.forEach(it => {
+      const li = document.createElement('li');
+      const animClass = animToClass(it.anim, global);
+      const link = makeLink(it);
+      if (animClass) { const span = document.createElement('span'); span.className = animClass; span.appendChild(link); li.appendChild(span); }
+      else { li.appendChild(link); }
+      if (it.children && it.children.length) { li.appendChild(buildUL(it.children)); }
+      ul.appendChild(li);
+    });
+    return ul;
+  };
+  const topFrag = document.createDocumentFragment();
+  menu.forEach(root => {
+    const wrap = document.createElement('div');
+    wrap.className = 'preview-item';
+    const animClass = animToClass(root.anim, global);
+    const link = makeLink(root);
+    if (animClass) { const span = document.createElement('span'); span.className = animClass; span.appendChild(link); wrap.appendChild(span); }
+    else { wrap.appendChild(link); }
+    if (root.children && root.children.length) { wrap.appendChild(buildUL(root.children)); }
+    topFrag.appendChild(wrap);
+  });
+  els.preview.appendChild(topFrag);
+  wirePreviewIntent(els.preview);
+}
+function wirePreviewIntent(container){
+  const OPEN_DELAY=80, CLOSE_DELAY=320;
+  const owners = [
+    ...container.querySelectorAll('.preview-item'),
+    ...container.querySelectorAll('.preview-item > ul li')
+  ].filter(el => el.querySelector(':scope > ul'));
+  owners.forEach(el => {
+    let openT = null, closeT = null;
+    const open = () => { clearTimeout(closeT); if (!el.classList.contains('open')) openT = setTimeout(()=>el.classList.add('open'), OPEN_DELAY); };
+    const close = () => { clearTimeout(openT); closeT = setTimeout(()=>el.classList.remove('open'), CLOSE_DELAY); };
+    el.addEventListener('mouseenter', open);
+    el.addEventListener('mouseleave', close);
+    const submenu = el.querySelector(':scope > ul');
+    if (submenu) {
+      submenu.addEventListener('mouseenter', () => { clearTimeout(closeT); el.classList.add('open'); });
+      submenu.addEventListener('mouseleave', close);
+    }
+  });
+}
+
+/* =============== Exports =============== */
+els.exportJson.addEventListener('click', ()=> download('menu.json', JSON.stringify(menu,null,2)));
+els.exportHtml.addEventListener('click', ()=>{
+  const {html,css}=generateExportHTML(menu, els.globalAnim.value);
+  const bundle=`<!-- Navigation HTML -->\n${html}\n\n<!-- Navigation CSS -->\n<style>\n${css}\n</style>\n`;
+  download('navigation.html', bundle);
+});
+els.exportCC.addEventListener('click', ()=>{
+  const cc = generateExportCC(menu);
+  const code = `window.customMegaMenuItems = ${JSON.stringify(cc, null, 2)};`;
+  download('customMegaMenuItems.js', code);
+});
+els.addRoot.addEventListener('click', ()=>addItem(null));
+els.reset.addEventListener('click', ()=>{ if(confirm('Reset to empty?')){ menu=[]; save(); renderAll(); historyPush(menu);} });
+
+function generateExportHTML(tree, globalAnimClass){
+  const css = `
+.navbar{display:flex;gap:18px;align-items:center}
+.nav-item{position:relative}
+.nav-link{display:inline-flex;gap:6px;align-items:center;text-decoration:none;padding:6px 10px;border-radius:8px;transition:all .2s}
+.caret{font-size:10px;opacity:.8}
+.anim-underline .nav-link{position:relative}
+.anim-underline .nav-link::after{content:"";position:absolute;left:10px;right:10px;bottom:3px;height:2px;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform .22s ease}
+.anim-underline .nav-link:hover::after{transform:scaleX(1)}
+.anim-rise .nav-link:hover{transform:translateY(-2px)}
+.anim-pulse .nav-link:hover{filter:brightness(1.2)}
+.nav-item>.nav-children{display:none;position:absolute;left:0;top:calc(100% + 8px);padding:10px;margin:0;list-style:none;border:1px solid #d0d7e2;border-radius:10px;background:#fff;min-width:260px}
+.nav-item:hover>.nav-children{display:block}
+.nav-children .nav-link{display:block}`.trim();
+
+  const build=(items)=> items.map(it=>{
+    const caret = (it.children?.length) ? '<span class="caret">▾</span>' : '';
+    const link = `<a class="nav-link" href="${escapeHtml(it.href||'#')}" target="${it.target||'_self'}" style="color:${it.color||'inherit'};background:${(it.bg&&it.bg.startsWith('#'))?it.bg:'transparent'}">${escapeHtml(it.label||'Untitled')}${caret}</a>`;
+    const inner = it.children?.length
+      ? `<div class="nav-item">${link}<ul class="nav-children">${build(it.children).join('')}</ul></div>`
+      : `<div class="nav-item">${link}</div>`;
+    const wrapperClass = (it.anim && it.anim!=='inherit') ? animToClassExport(it.anim) : '';
+    return wrapperClass ? `<div class="${wrapperClass}">${inner}</div>` : inner;
+  });
+  const classes=['navbar']; if(globalAnimClass) classes.push(globalAnimClass);
+  const html = `<nav class="${classes.join(' ')}">\n  ${build(tree).join('\n  ')}\n</nav>`;
+  return { html, css };
+}
+function animToClassExport(choice){ const map={underline:'anim-underline',rise:'anim-rise',pulse:'anim-pulse',none:''}; return map[choice]||''; }
+
+function generateExportCC(tree){
+  let nextId = 1;
+  function mapChild(node, order){
+    const isContainer = !!(node.children && node.children.length) && (!node.href || node.href==="#" );
+    const mapped = {
+      id: nextId++,
+      displayOrder: String(order),
+      title: node.label || 'Untitled',
+      url: node.href || "",
+      type: 1,
+      description: "",
+      heroImage: "",
+      thumbnailImage: "",
+      showDescriptionOnHomepage: false,
+      replyCount: 0,
+      children: [],
+      topicsOrder: [],
+      isCollapsed: false,
+      metaRobots: "index,follow",
+      seoTitle: "",
+      seoDescription: "",
+      hideFromSearch: false,
+      includeForStats: true,
+      parentId: null,
+      isContainer,
+      roles: Array.isArray(node.roles) ? node.roles : []
+    };
+    if(node.children?.length){ mapped.children = node.children.map((ch, idx)=> mapChild(ch, idx+1)); }
+    return mapped;
+  }
+  return tree.map((root, idx)=>({
+    key: "custom-dropdown",
+    position: root.position ?? (idx+10),
+    visibility: true,
+    name: root.label || `Menu ${idx+1}`,
+    roles: Array.isArray(root.roles) ? root.roles : [],
+    children: (root.children||[]).map((ch, i)=> mapChild(ch, i+1))
+  }));
+}
+function download(filename, content){
+  const blob=new Blob([content], {type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* =============== HTML Import (deep/robust) =============== */
+document.getElementById('togglePaste').addEventListener('click', ()=>{ els.pasteBox.style.display = (els.pasteBox.style.display==='none'?'block':'none'); });
+
+els.htmlImportFile.addEventListener('click', async () => {
+  try{
+    const file = els.htmlFile.files?.[0]; if(!file){ alert('Pick an HTML file first.'); return; }
+    const html = await file.text();
+    importFromHtml(html, { promote: els.htmlPromote.checked, replace: els.htmlReplace.checked, autoNestByPath: els.autoNestByPath.checked });
+  }catch(e){ console.error(e); alert('Import failed.'); }
+});
+els.htmlImportPaste.addEventListener('click', () => {
+  const html = els.htmlPaste.value.trim();
+  if(!html){ alert('Paste HTML first.'); return; }
+  importFromHtml(html, { promote: els.htmlPromote.checked, replace: els.htmlReplace.checked, autoNestByPath: els.autoNestByPath.checked });
+});
+
+function importFromHtml(html, { promote=true, replace=false, autoNestByPath=false } = {}){
+  setStatus('Parsing HTML…');
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  // Find the nav container: prefer explicit nav/role, then big UL
+  let root = doc.querySelector('nav[role="navigation"], nav[role=navigation], nav, [role="navigation"]');
+  if(!root){
+    const uls = [...doc.querySelectorAll('ul')].map(ul=>({ el: ul, score: ul.querySelectorAll('li a').length }));
+    uls.sort((a,b)=>b.score-a.score);
+    root = uls.length ? uls[0].el : doc.body;
+  }
+
+  // Identify top-level items: direct <li> children under a main UL (common pattern)
+  const topUL = root.querySelector(':scope > ul, :scope nav > ul, :scope .header-navigation-items_menu, :scope .navbar > ul') || root.querySelector('ul');
+  if(!topUL){ alert('No <ul> found inside the navigation.'); setStatus('Ready'); return; }
+
+  const topLis = [...topUL.querySelectorAll(':scope > li')];
+  const nodes = topLis.map(li => parseNavItem(li)).filter(Boolean);
+
+  let finalRoots;
+  if (promote) {
+    let pos = nextPositionGuess();
+    finalRoots = nodes.map(n => ({ ...n, position: pos++ }));
+  } else {
+    finalRoots = [{ id: uid(), label: 'Imported', href: '#', target: '_self', color:'#e5e7eb', bg:"", anim:'inherit', roles:[], position: nextPositionGuess(), children: nodes }];
+  }
+
+  menu = replace ? finalRoots : [...menu, ...finalRoots];
+  save(); renderAll(); historyPush(menu);
+  setStatus('Imported');
+}
+
+function normalizeSpaces(s){ return (s||'').replace(/\s+/g,' ').trim(); }
+
+function extractLabelFromAnchor(a){
+  // Prefer the dedicated name container if present
+  const nameEl = a.querySelector('.main-menu-link__name') 
+              || a.querySelector('.main-menu-link__name strong')
+              || a.querySelector('strong');
+
+  let text = nameEl ? nameEl.textContent : a.textContent;
+
+  // If a counter/badge exists, remove a trailing number only in that case
+  if (a.querySelector('.text--meta')) {
+    text = text.replace(/\s*\d+\s*$/, '');
+  }
+  return normalizeSpaces(text);
+}
+
+function extractHrefFromAnchor(a){
+  const href = a.getAttribute('href') || '#';
+  return href.trim();
+}
+
+/* Parse a nav LI, supporting <a>, <button>, and nested mega menu ULs */
+function parseNavItem(li){
+  const aDirect = li.querySelector(':scope > a');
+  const aNestedTrigger = li.querySelector(':scope .main-menu-link--category, :scope .header-navigation_link, :scope > div > a, :scope button a');
+  const btn = li.querySelector(':scope > button, :scope .dropdown-container > button');
+  const labelFromBtn = btn ? (btn.textContent || '').trim().replace(/\s+/g,' ') : null;
+
+  const mainA = aDirect || aNestedTrigger;
+  let label, href;
+  if (mainA) {
+    label = extractLabelFromAnchor(mainA);
+    href  = extractHrefFromAnchor(mainA);
+  } else {
+    // fallbacks (e.g., button-only triggers)
+    const labelFromBtn = btn ? normalizeSpaces(btn.textContent || '') : '';
+    label = labelFromBtn || normalizeSpaces((li.textContent || '').split('\n')[0]) || 'Untitled';
+    href  = '#';
+  }
+
+  const node = mkNode(label, href);
+
+  // Submenus within this LI (various site-specific wrappers)
+  const submenuContainers = [
+    ...li.querySelectorAll(':scope > ul, :scope .dropdown, :scope [class*="dropdown"] ul, :scope .main-menu-list--overflow-scroll ul, :scope .main-menu-list')
+  ];
+
+  let children = [];
+  const seenChild = new Set();
+
+  const collectNode = (n)=>{ const key=(n.label+'|'+n.href).toLowerCase(); if(!seenChild.has(key)){ seenChild.add(key); children.push(n); } };
+
+  submenuContainers.forEach(ctr => {
+    const subLis = [...ctr.querySelectorAll(':scope > li, :scope > .main-menu-list > li, :scope > ul > li')];
+    if (subLis.length === 0) {
+      const links = [...ctr.querySelectorAll(':scope > a[href]')];
+      links.forEach(a => collectNode(parseLinkAsNode(a)));
+    } else {
+      subLis.forEach(sli => {
+        const nestedHasUL = sli.querySelector(':scope ul');
+        const nestedButton = sli.querySelector(':scope .dropdown-container > button, :scope > button');
+        const nestedTriggerA = sli.querySelector(':scope > a, :scope .main-menu-link--category, :scope > div > a');
+
+        if (nestedHasUL || nestedButton) {
+          const subnode = parseNavItem(sli);
+          if (subnode) collectNode(subnode);
+        } else if (nestedTriggerA) {
+          collectNode(parseLinkAsNode(nestedTriggerA));
+        } else {
+          const anyA = sli.querySelector('a[href]');
+          if (anyA) collectNode(parseLinkAsNode(anyA));
+        }
+      });
+    }
+  });
+
+  node.children = dedupeNodes(children, new Set());
+  return node;
+}
+function parseLinkAsNode(a){
+  const label = extractLabelFromAnchor(a) || 'Untitled';
+  const href  = extractHrefFromAnchor(a);
+  return mkNode(label, href);
+}
+function dedupeNodes(arr, seen){
+  const out=[]; const keyFor=n=>`${(n.label||'').toLowerCase()}|${(n.href||'').toLowerCase()}`;
+  arr.forEach(n=>{ const k=keyFor(n); if(!seen.has(k)){ seen.add(k); const m={...n}; if(m.children?.length){ m.children = dedupeNodes(m.children, seen); } out.push(m); }});
+  return out;
+}
+
+/* =============== Boot =============== */
+function boot(){
+  loadLeft();                 // ⬅️ add this line
+  const cached = load();
+  if (cached && Array.isArray(cached)) menu = cached;
+  renderAll(); initHistory();
+  els.globalAnim.value = localStorage.getItem('nav_builder_global_anim') || 'anim-underline';
+  els.globalAnim.addEventListener('change', ()=> localStorage.setItem('nav_builder_global_anim', els.globalAnim.value));
+}
+
+boot();
+</script>
+</body>
+</html>
