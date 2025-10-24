@@ -16,7 +16,7 @@ Works entirely client-side (no backend) and includes multi-level nesting, live p
 - Autosave in `localStorage`
 - Resizable layout (drag the vertical divider; double-click to reset)
 - Import: JSON (flat or nested), Deep HTML (mega menus, dropdown containers)
-- Export: JSON, HTML+CSS (standalone), Gainsight Customer Community (CC)
+- Export: JSON, HTML+CSS (standalone), Gainsight Customer Community (CC **HEAD snippet with `<script>` tags**)
 
 ---
 
@@ -73,11 +73,24 @@ Standalone snippet for a multi-level dropdown nav (carets, hover interactions, a
 Copy directly into static sites or prototypes.
 
 ### Gainsight Customer Community (CC)
-Exports `window.customMegaMenuItems` objects:
-- Each **root with children** becomes a CC dropdown (`key: "custom-dropdown"`).
-- **Roots without children are omitted** (prevents empty carets/blank dropdowns).
-- `position` is taken from the root item (or auto-numbered).
-- `roles` comes from the item’s Roles field (array).
+Exports a **HEAD snippet** (HTML file that wraps your data in `<script>` tags) so you can paste it directly into Gainsight Community Admin:
+
+1. In the builder, click **Export Gainsight CC** → this downloads `customMegaMenuItems_head_snippet.html`.
+2. Open the file and copy its contents. It looks like:
+   ```html
+   <!-- Gainsight Customer Community custom menu -->
+   <script>
+   window.customMegaMenuItems = [ /* …your data… */ ];
+   </script>
+   ```
+3. In **Gainsight Customer Community Admin** go to **Third-party scripts** → **HEAD** and paste the snippet there.
+4. Save/Publish.
+
+**Notes**
+- Each **root with children** becomes a CC dropdown (`key: "custom-dropdown"`).  
+- **Roots without children are omitted** (prevents empty carets/blank dropdowns).  
+- `position` is taken from the root item (or auto-numbered).  
+- `roles` comes from the item’s Roles field (array).  
 - Children with **children and no href** export with `isContainer: true`.
 
 ---
