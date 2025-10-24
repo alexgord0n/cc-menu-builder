@@ -1,150 +1,123 @@
-# Navigation Menu Builder
+# 🧭 Gainsight Customer Community – Navigation Menu Builder
 
-A browser-based, drag-and-drop builder for creating complex navigation menus.  
-Works entirely client-side (no backend) and includes multi-level nesting, live preview, deep HTML import, JSON/HTML/Gainsight CC export, undo/redo, collapsible nodes, and a resizable editor.
-
----
+A zero-install, single-file HTML app to **import, build, rearrange, preview, and export** navigation menus for **Gainsight Customer Community (CC)** and general websites.
 
 ## Features
 
-- Drag & drop editor (reorder + nest with a handle)
-- Live preview with multi-level hover dropdowns and carets
-- Per-item controls: label, href, target, text color, background color, animation, roles
-- Root control: position (used by Gainsight CC export)
-- Collapsible nodes (twirl ▾/▸). Alt/Option-click to collapse/expand a whole subtree
-- Undo/Redo (`Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`)
-- Autosave in `localStorage`
-- Resizable layout (drag the vertical divider; double-click to reset)
-- Import: JSON (flat or nested), Deep HTML (mega menus, dropdown containers)
-- Export: JSON, HTML+CSS (standalone), Gainsight Customer Community (CC **HEAD snippet with `<script>` tags**)
+- **Drag & drop** with unlimited nesting (SortableJS)
+- Per-item properties: label, href, target, text color, background, animation, roles (**IDs**), root position
+- **Undo / Redo**
+- **Live Preview** with multi-level dropdowns and caret indicators
+- **Resizable layout** (drag the vertical divider)
+- **Collapse / expand (“twirl”)** editor nodes (Alt/Option-click to toggle an entire subtree)
+- **Import from HTML** (simple UI):
+  - Source: **HTML File** or **Paste HTML**
+  - **Promote wrapper to root** (skip a single outer wrapper)
+  - **Replace current items**
+  - **Auto-nest by URL path** (helps when the source is flat)
+- **Exports**
+  - **Gainsight CC** (primary): one file containing `<script>` + `<style>` (hover animation utilities)
+  - **HTML/CSS** (via “⋯ More” menu): `<nav>` + fully bundled CSS (dropdowns + animations)
+  - **JSON** (via “⋯ More” menu)
 
 ---
 
-## Getting Started
+## Quick Start
 
-1. **Download or clone** the repo and open the builder in a browser.
-   ```bash
-   git clone https://github.com/<your-org>/<your-repo>.git
-   cd <your-repo>
-   # Option A: double-click the HTML file (e.g., nav_builder.html)
-   # Option B: serve locally
-   python3 -m http.server 8080
-   # then visit http://localhost:8080/nav_builder.html
-   ```
-
-2. **Build a menu**
-   - Click **+ Add root item** to add a top-level entry.
-   - Use the **≡ handle** to drag for reordering or nesting.
-   - Click **＋** on an item to add a child.
-   - Click the **twirl** ▾ to collapse/expand; **Alt/Option+click** twirls the entire branch.
-
-3. **Preview**
-   - Hover items with a caret to reveal children.
-   - Set a **Global animation** (Underline, Rise, Pulse, None) or override per-item.
+1. Open `navigation_menu_builder.html` in a browser (no server needed).
+2. Use **+ Add root item** to start, or open **Import from HTML** to bootstrap from existing markup.
+3. Drag the **center divider** to resize the editor vs. preview.
+4. Hover items with a ▾ caret in the **Live Preview** to see dropdowns/flyouts.
+5. Use **Undo/Redo** as needed.
 
 ---
 
-## Importing
+## Importing from HTML
 
-### Import JSON
-- Accepts **nested arrays** (`children`) or **flat arrays** (with `parentId`).
-- Options:
-  - **Promote to root** — lift imported items to top level (no wrapper).
-  - **Replace current** — overwrite the current tree.
+Open **Import from HTML** (collapsed by default):
 
-### Import HTML (Deep)
-Paste or upload existing site nav markup. The importer detects:
-- Standard `<ul><li><a>` structures
-- Mega-menu patterns (e.g., `.dropdown-container`, `.main-menu-list`, etc.)
-- Labels from `.main-menu-link__name` / `<strong>` (ignores counters like `.text--meta`)
-- Optional: **Auto-nest by URL path** if the markup is flat
+- **Source**: choose **HTML File** or **Paste HTML**, then click **Import**.
+- **Advanced** (optional):
+  - **Promote wrapper to root** – If the source HTML has one outer item (“Products”, “Community”), import its children as top-level items.
+  - **Replace current items** – Overwrite instead of appending.
+  - **Auto-nest by URL path** – Generates submenus based on URL path segments when the source is flat.
 
-> If your site uses unique wrappers/classes, extend the selector list in the importer as needed.
+> The importer strips common trailing counters (e.g., `“Zoom AI Companion 0” → “Zoom AI Companion”`).
 
 ---
 
-## Exporting
+## Editing Items
 
-### JSON
-Clean structural representation of your menu (IDs, labels, hrefs, children, etc.).
-
-### HTML + CSS
-Standalone snippet for a multi-level dropdown nav (carets, hover interactions, animations).  
-Copy directly into static sites or prototypes.
-
-### Gainsight Customer Community (CC)
-Exports a **HEAD snippet** (HTML file that wraps your data in `<script>` tags) so you can paste it directly into Gainsight Community Admin:
-
-1. In the builder, click **Export Gainsight CC** → this downloads `customMegaMenuItems_head_snippet.html`.
-2. Open the file and copy its contents. It looks like:
-   ```html
-   <!-- Gainsight Customer Community custom menu -->
-   <script>
-   window.customMegaMenuItems = [ /* …your data… */ ];
-   </script>
-   ```
-3. In **Gainsight Customer Community Admin** go to **Third-party scripts** → **HEAD** and paste the snippet there.
-4. Save/Publish.
-
-**Notes**
-- Each **root with children** becomes a CC dropdown (`key: "custom-dropdown"`).  
-- **Roots without children are omitted** (prevents empty carets/blank dropdowns).  
-- `position` is taken from the root item (or auto-numbered).  
-- `roles` comes from the item’s Roles field (array).  
-- Children with **children and no href** export with `isContainer: true`.
+- Click the small ▾ button to **collapse/expand** a node.
+- **Roles** should be **IDs** (e.g., `10, 11, 12`), not names like “admin, moderator”.
+- Top-level items can have a **Position** (used by CC’s `position` field).
 
 ---
 
-## Shortcuts
+## Exports
 
-- Undo: `Ctrl/Cmd + Z`  
-- Redo: `Ctrl/Cmd + Shift + Z`  
-- Collapse/expand subtree: **Alt/Option + click** the twirl ▾/▸
+### 1) Gainsight Customer Community (Primary)
 
----
+Click **Export Gainsight CC**. A file like:
+customMegaMenuItems_head_snippet.html
 
-## UI Tips
+will download containing **both**:
 
-- **Transparent backgrounds**: the editor stores empty `bg` as transparent; the preview respects it (no invalid `transparent` in `<input type="color">`).
-- **Resizable editor**: drag the vertical divider between the editor and preview. Double-click to reset. Size persists in `localStorage`.
+- A `<script>` that defines `window.customMegaMenuItems = [...]`
+- A `<style>` block with **optional hover animation utilities** (underline / rise / pulse)
 
----
+**Where to paste:**  
+**Gainsight Customer Community → Admin → Third-party scripts → `<HEAD>`**
 
-## Troubleshooting
+**How to enable animations:**  
+Add **one** of the following classes to a wrapper in your theme (e.g., on `<body>` or the header container):
 
-- **Labels show a trailing “0”**  
-  Your source HTML likely includes counters like `<span class="text--meta">0</span>`.  
-  The importer strips those by reading the label from `.main-menu-link__name` (then removing trailing counts).
+- `anim-underline`
+- `anim-rise`
+- `anim-pulse`
 
-- **Divider looks off / won’t resize correctly**  
-  Ensure there is **one** wrapper:
-  ```html
-  <div class="layout">
-    <section id="editor">…</section>
-    <div id="divider"></div>
-    <section>…preview…</section>
-  </div>
-  ```
-  The divider must be a **direct child** between the two panels.
+> The utility CSS targets common CC link classes: `.main-menu-link` and `.header-navigation_link`.  
+> If your theme uses different classes, adjust the selectors in the exported `<style>`.
 
-- **Nothing imports from HTML**  
-  Confirm your markup contains a `<nav>` or `<ul>` with `<li><a>` links.  
-  If it’s highly custom, add/adjust selectors in the importer.
+**Notes:**
+- Only **top-level items that have children** are exported (prevents empty carets/blank dropdowns in CC).
+- If an item has children and no URL (or `#`), it’s treated as a **container** in the CC children mapping.
+- `roles` in the builder map directly to `roles: [...]` in the CC export (enter IDs like `10, 11, 12`).
 
----
+### 2) HTML/CSS (More → Export HTML/CSS)
 
-## Roadmap
+- Exports a standalone `<nav>` and an inline `<style>` with:
+  - Base navbar
+  - Multi-level dropdowns (flyouts)
+  - Caret styling
+  - Hover animations (`underline`, `rise`, `pulse`)
+- The global animation class is applied to the `<nav>`; per-item overrides are preserved.
 
-- Token-based import from Gainsight CC APIs (via local proxy to avoid CORS)
-- One-click **“Groups”** dropdown builder from API data
-- **Collapse/Expand All** toolbar actions
-- Theming presets for HTML/CSS export
+### 3) JSON (More → Export JSON)
+
+- Exports the internal data structure for your own tooling.
 
 ---
 
-## Contributing
+## Keyboard Shortcuts
 
-PRs welcome! For site-specific import rules, keep selectors narrow and wrap behind options.
+- **Undo**: `Cmd/Ctrl + Z`  
+- **Redo**: `Cmd/Ctrl + Shift + Z` (or `Cmd/Ctrl + Y`)
+
+---
+
+## Tips
+
+- Use **twirl** to collapse busy branches while rearranging.
+- If your import comes in “flat,” try **Auto-nest by URL path**.
+- If you don’t want the outer “wrapper” (e.g., “Products”), enable **Promote wrapper to root**.
+
+---
+
+## Known Limitations
+
+- HTML import is best-effort across varied markups; if something doesn’t parse, share a snippet and the selectors can be extended.
+- The CC export sets up data (via `window.customMegaMenuItems`); layout/behavior is controlled by your CC theme. The included animation CSS is optional and additive.
 
 ---
 
