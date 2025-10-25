@@ -13,12 +13,12 @@
   header h1{margin:0;font-size:16px;font-weight:600}
   header .actions{margin-left:auto;display:flex;gap:8px;align-items:center}
   button,select,input[type="text"],input[type="url"],input[type="color"],input[type="number"],textarea{
-    background:#0f172a;color:#e5e7eb;border:1px solid #23324e;border-radius:8px;padding:8px 10px;font:inherit
+    background:#0f172a;color:#e5e7eb;border:1px solid #23324e;border-radius:4px;padding:8px 10px;font:inherit
   }
   button{cursor:pointer;transition:.15s transform}
   button:hover{transform:translateY(-1px);border-color:#355188}
   button.ghost{background:transparent}
-  .pill{padding:4px 8px;border-radius:999px;border:1px solid #203050;background:#0c1427;font-size:12px;color:#cbd5e1}
+  .pill{padding:4px 8px;border-radius:4px;border:1px solid #203050;background:#0c1427;font-size:12px;color:#cbd5e1}
   .danger{border-color:#4b1f2a;background:#281018;color:#fca5a5}
 
   /* Overflow "More" menu */
@@ -92,10 +92,10 @@
   .anim-underline .preview-link:hover::after{transform:scaleX(1)}
   .anim-rise .preview-link:hover{transform:translateY(-2px)}
   .anim-pulse .preview-link:hover{filter:brightness(1.2)}
-  .preview-item > ul{display:none; position:absolute; left:0; top:100%; margin-top:4px; padding:10px; list-style:none; border:1px solid #243453; border-radius:10px; background:#0d1529; min-width:220px; z-index:9999; overflow:visible;}
+  .preview-item > ul{display:none; position:absolute; left:0; top:calc(100% - 2px); margin-top:0px; padding-top:6px; list-style:none; border:1px solid #243453; border-radius:10px; background:#0d1529; min-width:220px; z-index:9999; overflow:visible;}
   .preview-item:hover > ul,.preview-item > ul:hover{ display:block; }
   .preview-item > ul li{ position:relative; margin:4px 0; }
-  .preview-item > ul li > ul{ display:none; position:absolute; left:100%; top:0; margin-left:8px; padding:10px; list-style:none; border:1px solid #243453; border-radius:10px; background:#0d1529; min-width:220px; z-index:9999; }
+  .preview-item > ul li > ul{ display:none; position:absolute; left:100%; top:0; margin-left:-2px; padding:10px; list-style:none; border:1px solid #243453; border-radius:10px; background:#0d1529; min-width:220px; z-index:9999; }
   .preview-item > ul li:hover > ul,.preview-item > ul li > ul:hover{ display:block; }
   .previewWrap { position: relative; z-index: 1; }
   .preview-bar  { position: relative; z-index: 2; }
