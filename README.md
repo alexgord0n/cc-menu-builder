@@ -1,126 +1,131 @@
-# 🧭 Gainsight Customer Community – Navigation Menu Builder
+# 🧭 Navigation Menu Builder (Gainsight CC)
 
-A zero-install, single-file HTML app to **import, build, rearrange, preview, and export** navigation menus for **Gainsight Customer Community (CC)** and general websites.
+A zero-dependency, in-browser tool to import your **Gainsight Customer Community** header HTML, restructure it into a clean, nested menu, preview hover animations, and export ready-to-paste snippets.
 
-## Features
+## Why this exists
 
-- **Drag & drop** with unlimited nesting (SortableJS)
-- Per-item properties: label, href, target, text color, background, animation, roles (**IDs**), root position
-- **Undo / Redo**
-- **Live Preview** with multi-level dropdowns and caret indicators
-- **Resizable layout** (drag the vertical divider)
-- **Collapse / expand (“twirl”)** editor nodes (Alt/Option-click to toggle an entire subtree)
-- **Import from HTML** (simple UI):
-  - Source: **HTML File** or **Paste HTML**
-  - **Promote wrapper to root** (skip a single outer wrapper)
-  - **Replace current items**
-  - **Auto-nest by URL path** (helps when the source is flat)
-- **Exports**
-  - **Gainsight CC** (primary): one file containing `<script>` + `<style>` (hover animation utilities)
-  - **HTML/CSS** (via “⋯ More” menu): `<nav>` + fully bundled CSS (dropdowns + animations)
-  - **JSON** (via “⋯ More” menu)
+Gainsight’s header HTML flattens “section” categories (e.g. **Concur Expense**, **Concur Invoice**, **Concur Travel**, **Resources**). This tool imports that markup and **groups items by section headers** (anchors containing `<strong>`), turning them into parents with their following siblings as children—matching the logical community structure you actually want.
 
----
+## What’s included
 
-## Quick Start
+- **Gainsight-only importer**  
+  Parses `.header-navigation-items_menu` and the product-forums mega menu.  
+  Section headers (links with `<strong>`) → parents; subsequent items → children.  
+  Preserves true nested flyouts (e.g., *Welcome → Getting started*, *Admins Section → Admin Resources / Admin Onboarding / What’s new*).
 
-1. Open `navigation_menu_builder.html` in a browser (no server needed).
-2. Use **+ Add root item** to start, or open **Import from HTML** to bootstrap from existing markup.
-3. Drag the **center divider** to resize the editor vs. preview.
-4. Hover items with a ▾ caret in the **Live Preview** to see dropdowns/flyouts.
-5. Use **Undo/Redo** as needed.
+- **Drag-and-drop editor**  
+  Reorder, nest/unnest, add, and delete items. Per-item: label, URL, target, colors, animation, roles. Root items get an optional `position`.
 
----
+- **Live preview**  
+  Multi-level dropdown preview with underline / rise / pulse hover animations.
 
-## Importing from HTML
+- **Exports**  
+  - **HTML/CSS**: standalone navbar snippet.  
+  - **Gainsight CC**: `window.customMegaMenuItems` head snippet + optional animation CSS.  
+  - **JSON**: raw schema.
 
-Open **Import from HTML** (collapsed by default):
+- **Local persistence + Undo/Redo**  
+  Stores in `localStorage`; full undo/redo history.
 
-- **Source**: choose **HTML File** or **Paste HTML**, then click **Import**.
-- **Advanced** (optional):
-  - **Promote wrapper to root** – If the source HTML has one outer item (“Products”, “Community”), import its children as top-level items.
-  - **Replace current items** – Overwrite instead of appending.
-  - **Auto-nest by URL path** – Generates submenus based on URL path segments when the source is flat.
+## Getting started
 
-> The importer strips common trailing counters (e.g., `“Zoom AI Companion 0” → “Zoom AI Companion”`).
+1. Open `index.html` (or `cc-navigation-menu-builder.html`) in any modern browser.
+2. In **Import from Gainsight HTML**, paste your site’s header HTML (copy from your live page or theme).
+3. (Optional) Check **Replace current items** if you want to wipe existing items.
+4. Click **Import**.  
+   You should see:
+   - Quick links (Community / Recently active / Unanswered…)  
+   - Grouped sections (e.g., **Concur Expense** with *Show & Tell*, *Discussions*, *Welcome* under it)  
+   - Preserved flyouts (e.g., *Welcome → Getting started*, *Admins Section → …*)
 
----
+> Tip: If your header uses a mega menu entry (e.g., *Product Forums*), we read its `.dropdown--forums-overview` internals and group sections automatically.
 
-## Editing Items
+## Editing
 
-- Click the small ▾ button to **collapse/expand** a node.
-- **Roles** should be **IDs** (e.g., `10, 11, 12`), not names like “admin, moderator”.
-- Top-level items can have a **Position** (used by CC’s `position` field).
+- Click **＋ Add root item** to create a new top-level entry.
+- Use the **≡ handle** to drag and drop. Drop inside another item to nest.
+- Click the caret button to **collapse/expand**. **Alt+Click** toggles the whole branch.
+- Use the pill controls to set text/background color, animation, target, roles, etc.
 
----
+## Exporting
 
-## Exports
+- **Export HTML/CSS** → `navigation.html` (copy into any site).
+- **Export Gainsight CC** → `customMegaMenuItems_head_snippet.html`  
+  Paste the `<script>` + `<style>` into your community **HEAD**.  
+  Add a class such as `anim-underline` to your header container to enable hover animations.
+- **Export JSON** for backups or automation.
 
-### 1) Gainsight Customer Community (Primary)
+## Keyboard shortcuts
 
-Click **Export Gainsight CC**. A file like:
-customMegaMenuItems_head_snippet.html
+- **Undo**: `Cmd/Ctrl+Z`  
+- **Redo**: `Cmd/Ctrl+Shift+Z` or `Cmd/Ctrl+Y`
 
-will download containing **both**:
+## How the importer works (Gainsight-only)
 
-- A `<script>` that defines `window.customMegaMenuItems = [...]`
-- A `<style>` block with **optional hover animation utilities** (underline / rise / pulse)
+1. Locate the UL at `.header-navigation-items_menu`.
+2. For a mega-menu item (e.g., *Product Forums*), inspect its dropdown container:
+   - Read **quick links** list.
+   - Walk the **main list**:
+     - If an anchor contains `<strong>`, it is a **section header** → becomes a **parent**.
+     - Subsequent siblings until the next header become that parent’s **children**.
+     - If a list item contains a nested flyout (`.dropdown--forums-overview--nested`), recurse and attach those grand-children.
+3. Build a clean tree and render.
 
-**Where to paste:**  
-**Gainsight Customer Community → Admin → Third-party scripts → `<HEAD>`**
+> We intentionally **removed generic UL fallbacks and aggressive de-duplication**. The importer is focused on Gainsight markup to keep behavior predictable and clean.
 
-**How to enable animations:**  
-Add **one** of the following classes to a wrapper in your theme (e.g., on `<body>` or the header container):
+## Data shape
 
-- `anim-underline`
-- `anim-rise`
-- `anim-pulse`
+```ts
+type MenuItem = {
+  id: string;
+  label: string;
+  href: string;       // "#" for containers
+  target: "_self" | "_blank";
+  color: string;      // e.g., "#e5e7eb"
+  bg: string;         // "" or hex
+  anim: "inherit" | "underline" | "rise" | "pulse" | "none";
+  roles: string[];    // optional role ids
+  position?: number;  // only used for top-level items on export
+  children: MenuItem[];
+};
+```
 
-> The utility CSS targets common CC link classes: `.main-menu-link` and `.header-navigation_link`.  
-> If your theme uses different classes, adjust the selectors in the exported `<style>`.
+## Troubleshooting
 
-**Notes:**
-- Only **top-level items that have children** are exported (prevents empty carets/blank dropdowns in CC).
-- If an item has children and no URL (or `#`), it’s treated as a **container** in the CC children mapping.
-- `roles` in the builder map directly to `roles: [...]` in the CC export (enter IDs like `10, 11, 12`).
+- **“Could not find Gainsight header UL”**  
+  Ensure your paste includes a `<nav>` with `.header-navigation-items_menu`. Copy directly from your live header.
+- **Item appears flat instead of nested**  
+  Verify that the intended parent anchor has a `<strong>` inside; that’s how section grouping is detected.
+- **Preview shows no hover animation**  
+  Set the global animation dropdown or per-item `Anim` to something other than `inherit`.
 
-### 2) HTML/CSS (More → Export HTML/CSS)
+## Development
 
-- Exports a standalone `<nav>` and an inline `<style>` with:
-  - Base navbar
-  - Multi-level dropdowns (flyouts)
-  - Caret styling
-  - Hover animations (`underline`, `rise`, `pulse`)
-- The global animation class is applied to the `<nav>`; per-item overrides are preserved.
-
-### 3) JSON (More → Export JSON)
-
-- Exports the internal data structure for your own tooling.
-
----
-
-## Keyboard Shortcuts
-
-- **Undo**: `Cmd/Ctrl + Z`  
-- **Redo**: `Cmd/Ctrl + Shift + Z` (or `Cmd/Ctrl + Y`)
-
----
-
-## Tips
-
-- Use **twirl** to collapse busy branches while rearranging.
-- If your import comes in “flat,” try **Auto-nest by URL path**.
-- If you don’t want the outer “wrapper” (e.g., “Products”), enable **Promote wrapper to root**.
-
----
-
-## Known Limitations
-
-- HTML import is best-effort across varied markups; if something doesn’t parse, share a snippet and the selectors can be extended.
-- The CC export sets up data (via `window.customMegaMenuItems`); layout/behavior is controlled by your CC theme. The included animation CSS is optional and additive.
-
----
+- No build step required. Open the HTML file in a browser.
+- Uses SortableJS (CDN) for drag/drop.
+- All state is local to the browser via `localStorage`.
 
 ## License
 
 MIT
+
+---
+
+## Conventional commit + changelog snippet
+
+**Commit (single line):**
+```
+feat(import): Gainsight-only importer with section-header grouping; remove generic fallback & duplication; preserve nested flyouts; update docs
+```
+
+**Extended message:**
+```
+feat(import): Gainsight-only importer with section-header grouping
+
+- Parse .header-navigation-items_menu and forums mega menu only
+- Treat anchors containing <strong> as section headers (parents); subsequent items as children
+- Preserve true nested flyouts (e.g., Welcome → Getting started; Admins Section → Admin Resources / Admin Onboarding / What’s new)
+- Remove generic UL fallback and heavy de-duplication logic
+- Keep local undo/redo and preview intact
+- Update README with usage, importer details, exports, and troubleshooting
+```
